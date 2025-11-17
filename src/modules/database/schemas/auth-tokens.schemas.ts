@@ -7,7 +7,7 @@ import { bigint, bigserial, boolean, index, pgEnum, pgTable, text, timestamp, un
 /**
  * Importing user defined packages
  */
-import { services } from './services.schema';
+import { services } from './applications.schema';
 import { userAuthIdentities, users } from './users.schema';
 
 /**
@@ -84,9 +84,7 @@ export const userSignInEvents = pgTable(
     userId: bigint('user_id', { mode: 'bigint' })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    userAuthIdentityId: bigint('user_auth_identity_id', { mode: 'bigint' })
-      .notNull()
-      .references(() => userAuthIdentities.id, { onDelete: 'set null' }),
+    userAuthIdentityId: bigint('user_auth_identity_id', { mode: 'bigint' }).references(() => userAuthIdentities.id, { onDelete: 'set null' }),
     sessionId: bigint('session_id', { mode: 'bigint' }).references(() => userSessions.id, { onDelete: 'set null' }),
 
     successful: boolean('successful').notNull().default(false),
