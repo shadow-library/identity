@@ -17,3 +17,21 @@ export interface Record {
 export type ID = string | bigint;
 
 export type OpResult<T = Record> = T[];
+
+export enum PrimaryDBErrorCode {
+  UniqueViolation = '23505',
+  NotNullViolation = '23502',
+  ForeignKeyViolation = '23503',
+}
+
+export interface PostgresError {
+  errno: string;
+  detail: string;
+  severity: string;
+  schema: string;
+  table: string;
+  constraint: string;
+  file: string;
+  routine: string;
+  code: 'ERR_POSTGRES_SERVER_ERROR';
+}
