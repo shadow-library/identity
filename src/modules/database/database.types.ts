@@ -18,12 +18,6 @@ export type ID = string | bigint;
 
 export type OpResult<T = Record> = T[];
 
-export enum PrimaryDBErrorCode {
-  UniqueViolation = '23505',
-  NotNullViolation = '23502',
-  ForeignKeyViolation = '23503',
-}
-
 export interface PostgresError {
   errno: string;
   detail: string;
