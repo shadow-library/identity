@@ -230,7 +230,7 @@ The authentication flow is linear. Each endpoint expects the `flowId` to be in a
   {
     "flowId": "flow_xyz123",
     "method": "OTP_EMAIL",
-    "credential": { "code": "987654" }
+    "code": "987654"
   }
   ```
 

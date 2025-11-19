@@ -116,7 +116,7 @@ The registration flow is a multi-step process designed to collect data sequentia
 
 - **Client Action:** Submits flowId, firstName, and lastName.
 - **DB Transaction (Commit User):** This is a single, atomic transaction.
-  1. Insert into `users` table.`
+  1. Insert into `users` table.
   2. Insert into `user_emails` (marked as `is_verified=true`, `is_primary=true`).
   3. Insert into `user_profiles` (using data from flow's `regData` and submitted profile names).
   4. Insert into `user_auth_identities` (defaulting to `OTP` method).
