@@ -34,7 +34,7 @@ The stored value is a JSON object representing the FlowContext. It contains the 
 | device             | JSON    | Device fingerprint, IP, User Agent (for fraud detection).                                                                                       |
 | regData            | JSON    | Temporary storage for registration fields (DOB, Names) before DB commit.                                                                        |
 | globalFailureCount | Integer | **Limit: 5**. Tracks total incorrect attempts across all methods combined. If this hits 5, the entire flow is locked/terminated.                |
-| failureCount       | Integer | **Limit: 3**. Tracks failures for the current method, If this hits 3, the entire flow is locked/terminated.                                     |
+| failureCount       | Integer | **Limit: 3**. Tracks failures for the current method. If this hits 3, the entire flow is locked/terminated.                                     |
 | globalResendCount  | Integer | **Limit: 5.** Tracks total OTP resend requests.                                                                                                 |
 | resendCount        | Integer | **Limit: 3.** Tracks total OTP resend requests.                                                                                                 |
 | activeChallenge    | JSON    | Stores the currently active OTP/secret for verification. Should contain: `{ "code": "123456", "method": "SMS_OTP", "expiresAt": <timestamp> }`. |

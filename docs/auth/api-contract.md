@@ -54,7 +54,7 @@ The authentication flow is linear. Each endpoint expects the `flowId` to be in a
 
   ```jsonc
   {
-    "flowId": "uth_flow_123abc...",
+    "flowId": "auth_flow_123abc...",
     "code": "123456",
   }
   ```
@@ -76,7 +76,7 @@ The authentication flow is linear. Each endpoint expects the `flowId` to be in a
 
   ```jsonc
   {
-    "flowId": "uth_flow_123abc...",
+    "flowId": "auth_flow_123abc...",
     "method": "EMAIL_OTP",
   }
   ```
