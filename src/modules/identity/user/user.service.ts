@@ -4,16 +4,17 @@
 import assert from 'node:assert';
 
 import { Injectable } from '@shadow-library/app';
-import { Logger, MaybeNull } from '@shadow-library/common';
+import { Logger, MaybeNull, ValidationError } from '@shadow-library/common';
+import { ServerError } from '@shadow-library/fastify';
 import { SQL, eq } from 'drizzle-orm';
+import validator, { StrongPasswordOptions } from 'validator';
 
 /**
  * Importing user defined packages
  */
+import { AppErrorCode } from '@server/classes';
 import { APP_NAME } from '@server/constants';
 import { DatastoreService, ID, OpResult, PrimaryDatabase, User, schema } from '@server/modules/infrastructure/datastore';
-import { ServerError } from '@shadow-library/fastify';
-import { AppErrorCode } from '@server/classes';
 
 /**
  * Defining types
@@ -53,6 +54,8 @@ interface FindUserFilter {
 /**
  * Declaring the constants
  */
+const USERNAME_REGEX = /^[a-zA-Z0-9-_.]{3,32}$/;
+const STRONG_PASSWORD_OPTIONS: StrongPasswordOptions = { minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 };
 
 @Injectable()
 export class UserService {
@@ -73,18 +76,29 @@ export class UserService {
   async createUserWithPassword(data: CreateUser): Promise<UserDetails> {
     const user = await this.db
       .transaction(async tx => {
+        const validationError = new ValidationError();
+        if (!validator.isEmail(data.email)) validationError.addFieldError('email', 'Invalid email address.');
+        if (!validator.isStrongPassword(data.password, STRONG_PASSWORD_OPTIONS)) validationError.addFieldError('password', 'Does not meet the password strength requirements.');
+        if (data.username && !USERNAME_REGEX.test(data.username)) validationError.addFieldError('username', `Does not match the pattern - ${USERNAME_REGEX}.`);
+        if (data.phoneNumber && !validator.isMobilePhone(data.phoneNumber, 'any', { strictMode: true })) validationError.addFieldError('phoneNumber', 'Invalid phone number.');
+        if (validationError.getErrorCount()) throw validationError;
+        this.logger.debug('validation passed for new user creation');
+
         const [user] = await tx.insert(schema.users).values({ username: data.username, status: data.status }).returning();
         assert(user, 'User creation failed');
+        this.logger.debug('user created', { userId: user.id });
         const userDetails: UserDetails = { ...user, emails: [], phones: [], profile: null, authIdentities: [] };
 
         const profileData = { userId: user.id, ...data, dateOfBirth: data.dateOfBirth?.toISOString() };
         const [profile] = await tx.insert(schema.userProfiles).values(profileData).returning();
         assert(profile, 'User profile creation failed');
+        this.logger.debug('user profile created', { userId: user.id });
         userDetails.profile = profile;
 
         const emailId = data.email.toLowerCase();
         const [email] = await tx.insert(schema.userEmails).values({ userId: user.id, emailId, isPrimary: true, isVerified: data.emailVerified }).returning();
         assert(email, 'User email creation failed');
+        this.logger.debug('user email created', { userId: user.id, emailId });
         userDetails.emails.push(email);
 
         if (data.phoneNumber) {
@@ -93,16 +107,19 @@ export class UserService {
             .values({ userId: user.id, phoneNumber: data.phoneNumber, isPrimary: true, isVerified: data.phoneVerified })
             .returning();
           assert(phone, 'User phone creation failed');
+          this.logger.debug('user phone created', { userId: user.id, phoneNumber: data.phoneNumber });
           userDetails.phones.push(phone);
         }
 
         const [authIdentity] = await tx.insert(schema.userAuthIdentities).values({ userId: user.id, provider: 'PASSWORD', providerKey: email.emailId }).returning();
         assert(authIdentity, 'User auth identity creation failed');
+        this.logger.debug('user auth identity created', { userId: user.id, authIdentityId: authIdentity.id });
         userDetails.authIdentities.push(authIdentity);
 
         const passwordHash = await Bun.password.hash(data.password, { algorithm: 'argon2id' });
         const [password] = await tx.insert(schema.userPasswords).values({ userAuthIdentityId: authIdentity.id, algorithm: 'ARGON2ID', hash: passwordHash }).returning();
         assert(password, 'User password creation failed');
+        this.logger.debug('user password created', { userId: user.id, authIdentityId: password.userAuthIdentityId });
 
         return userDetails;
       })
@@ -131,6 +148,7 @@ export class UserService {
         .where(filter.sql)
         .returning({ id: schema.users.id })
         .catch(error => this.datastoreService.translateError(error));
+      this.logger.debug('user status updated using users table', { userId: identifier, status, result });
     } else {
       const table = filter.table === 'userEmails' ? schema.userEmails : schema.userPhones;
       result = await update
@@ -138,6 +156,7 @@ export class UserService {
         .where(filter.sql)
         .returning({ id: schema.users.id })
         .catch(error => this.datastoreService.translateError(error));
+      this.logger.debug('user status updated using related table', { userId: identifier, status, table: filter.table, result });
     }
     if (result.length === 0) throw new ServerError(AppErrorCode.USR_001);
   }

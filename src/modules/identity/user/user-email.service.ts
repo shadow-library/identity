@@ -23,7 +23,7 @@ export class UserEmailService {
   private readonly logger = Logger.getLogger(APP_NAME, UserEmailService.name);
   private readonly db: PrimaryDatabase;
 
-  constructor(private readonly datastoreService: DatastoreService) {
+  constructor(datastoreService: DatastoreService) {
     this.db = datastoreService.getPrimaryDatabase();
   }
 
